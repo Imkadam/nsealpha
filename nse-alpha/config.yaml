@@ -1,0 +1,119 @@
+# ============================================================
+# NSE Alpha - configuration
+# Every number here is a knob. Change, re-run, re-backtest.
+# ============================================================
+
+data:
+  # Adjust history for splits, bonuses and rights. Leave this ON. With it off,
+  # a 1:5 split reads as a -80% day and quietly wrecks every momentum factor.
+  adjust_corporate_actions: true
+  # Pull the F&O bhavcopy, participant OI and FII/DII activity as well.
+  fetch_flows: true
+  db_path: data/market.sqlite
+  cache_dir: cache
+  site_dir: site
+  # How many calendar days of daily bars to keep/backfill.
+  history_days: 900
+  # NSE is polite-rate-limited. Requests per second across the whole app.
+  requests_per_second: 2.5
+  request_timeout: 20
+  max_retries: 4
+  # Use httpx+http2 instead of requests. Turn on if NSE 403s you.
+  server_mode: false
+
+universe:
+  # "ALL"        -> every equity in the daily bhavcopy (~2000 names)
+  # "NIFTY 500"  -> constituents of that index (any NSE index name works)
+  source: "ALL"
+  series_allowed: ["EQ"]        # EQ only. BE/BZ = trade-to-trade / surveillance.
+
+filters:
+  min_price: 20.0               # no sub-20 rupee stocks
+  max_price: 100000.0
+  min_avg_turnover_cr: 5.0      # 20-day avg daily traded value, in Rs crore
+  min_history_days: 250         # need ~1 year of bars for the factors to mean anything
+  min_avg_delivery_pct: 20.0    # persistently low delivery = intraday churn / operator play
+  max_gap_days: 10              # stock must have traded recently
+  exclude_surveillance: true    # drop ASM / GSM / trade-to-trade names
+  exclude_sme: true
+
+# ---- Factor block weights. Must be positive; normalised internally. ----
+weights:
+  technical: 0.22
+  momentum: 0.18
+  fundamental: 0.22
+  sentiment: 0.08
+  trend: 0.18
+  flows: 0.12          # derivatives positioning + institutional ownership
+
+# ---- Weights *within* each block ----
+technical_weights:
+  trend_structure: 0.22         # price vs SMA20/50/200, golden cross
+  adx_strength: 0.10            # ADX + directional index
+  rsi_zone: 0.12                # rewards 50-70, punishes >80 and <35
+  macd: 0.13                    # histogram sign + slope
+  bollinger: 0.08               # %B + squeeze breakout
+  supertrend: 0.10
+  volume_confirmation: 0.10     # OBV slope + volume surge
+  breakout_proximity: 0.08      # distance to 52w high / 20d high break
+  delivery_quality: 0.07        # delivery % trend - the NSE-specific edge
+
+momentum_weights:
+  ret_1m: 0.15
+  ret_3m: 0.25
+  ret_6m: 0.20
+  ret_12m_1m: 0.15              # classic 12-1 momentum (skips last month)
+  rs_vs_market: 0.15            # Mansfield relative strength vs benchmark
+  consistency: 0.10             # % positive weeks + return/vol
+
+fundamental_weights:
+  valuation: 0.26               # P/E vs sector, P/B, PEG, EV/EBITDA, div yield
+  quality: 0.28                 # ROE, real ROCE, interest cover, margins, D/E
+  growth: 0.22                  # revenue / PAT / EPS growth (YoY + QoQ)
+  cash_quality: 0.14            # FCF (CFO - capex) and cumulative CFO vs PAT
+  ownership: 0.10               # promoter holding, pledge %, FII-DII change
+
+sentiment_weights:
+  announcements: 0.55           # NSE corporate filings, keyword-scored
+  deals: 0.25                   # bulk / block deal direction
+  results_reaction: 0.20        # price reaction around last result date
+
+trend_weights:
+  historical_edge: 0.35         # forward returns of similar past setups (same stock)
+  regime_fit: 0.25              # Hurst: is this name trending or mean-reverting?
+  seasonality: 0.15             # month-of-year effect for this stock
+  drawdown_health: 0.15         # distance from peak + recovery behaviour
+  volatility_regime: 0.10       # penalise vol expansion into the signal
+
+flows_weights:
+  oi_buildup: 0.35              # long build-up vs short covering (F&O names only)
+  pcr_position: 0.15            # put-call ratio, read at extremes
+  basis: 0.15                   # futures premium/discount to spot
+  institutional: 0.35           # QoQ change in FII/DII/promoter holding + pledge
+
+scoring:
+  winsorize_pct: 0.02           # clip factor tails at 2% / 98% before z-scoring
+  sector_neutral: true          # z-score within sector, removes sector beta
+  min_factor_coverage: 0.6      # a stock needs 60% of factors present to be ranked
+  top_n: 10
+
+risk:
+  # Market regime overlay. When the market is broken, the model says so.
+  benchmark: "NIFTY 50"
+  breadth_index: "NIFTY 500"
+  risk_off_below_sma: 200       # benchmark under its 200-DMA -> risk-off
+  vix_caution: 18.0
+  vix_risk_off: 24.0
+  # Position sizing suggestion
+  account_risk_pct: 1.0         # risk 1% of capital per trade
+  atr_stop_multiple: 2.0        # stop = entry - 2 * ATR(14)
+  max_stop_pct: 12.0            # never place a stop further than this from entry
+  target_multiples: [2.0, 3.5]  # R-multiples for T1 / T2
+  max_positions: 10
+  max_per_sector: 3
+
+backtest:
+  start: "2023-01-01"
+  rebalance_days: 5             # hold period in trading days
+  top_n: 10
+  cost_bps: 35                  # round-trip: brokerage + STT + impact, in basis points

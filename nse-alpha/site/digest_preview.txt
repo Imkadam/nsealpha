@@ -1,0 +1,94 @@
+NSE ALPHA — top 10 for 19 Aug 2026
+==============================================================
+
+MARKET REGIME: RISK-OFF  (suggested exposure 25%)
+  - Benchmark is -2.6% BELOW its 200-DMA — most large drawdowns happen here. Treat every long with suspicion.
+  - Benchmark is below its 50-DMA (intermediate trend down).
+  - Breadth is mixed — 52% of stocks above their 50-DMA.
+  - India VIX at 11.3 — volatility is contained.
+
+First run — no previous ranking to compare against.
+
+--------------------------------------------------------------
+ 1. RPEL
+    Unclassified  |  score +1.15
+    Price Rs 1,637.40   Entry 1,614.80-1,660.00   Stop 1,508.27 (-7.9%)
+    Targets 1,895.66 / 2,089.35   Qty 0   Risk Rs 0
+    + Strong 3-month return
+    + Strong 6-month return
+    ! RSI above 78 — overbought, a pullback is likely before continuation
+    ! Thin liquidity (Rs 12 cr/day) — use limit orders, expect slippage
+
+ 2. PARAS
+    Unclassified  |  score +1.13
+    Price Rs 1,496.40   Entry 1,473.67-1,519.13   Stop 1,366.53 (-8.7%)
+    Targets 1,756.15 / 1,950.96   Qty 0   Risk Rs 0
+    + Strong 3-month return
+    + This exact setup has historically preceded gains in this stock
+
+ 3. HFCL
+    Unclassified  |  score +1.06
+    Price Rs 226.53   Entry 222.99-230.07   Stop 207.03 (-8.6%)
+    Targets 265.53 / 294.78   Qty 1   Risk Rs 20
+    + This exact setup has historically preceded gains in this stock
+    + Strong 6-month return
+
+ 4. MARKSANS
+    Unclassified  |  score +1.01
+    Price Rs 327.00   Entry 322.03-331.97   Stop 298.61 (-8.7%)
+    Targets 383.78 / 426.36   Qty 0   Risk Rs 0
+    + This exact setup has historically preceded gains in this stock
+    + Strong 3-month return
+
+ 5. IRISDOREME
+    Unclassified  |  score +0.97
+    Price Rs 58.62   Entry 57.94-59.30   Stop 54.74 (-6.6%)
+    Targets 66.39 / 72.22   Qty 6   Risk Rs 23
+    + This exact setup has historically preceded gains in this stock
+    + Strong 3-month return
+    ! RSI above 78 — overbought, a pullback is likely before continuation
+    ! Thin liquidity (Rs 8 cr/day) — use limit orders, expect slippage
+
+ 6. AVALON
+    Unclassified  |  score +0.96
+    Price Rs 2,245.60   Entry 2,208.18-2,283.02   Stop 2,031.75 (-9.5%)
+    Targets 2,673.31 / 2,994.09   Qty 0   Risk Rs 0
+    + This exact setup has historically preceded gains in this stock
+    + Against it: expensive relative to its own sector
+
+ 7. MOREPENLAB
+    Unclassified  |  score +0.94
+    Price Rs 88.42   Entry 86.73-90.11   Stop 78.79 (-10.9%)
+    Targets 107.68 / 122.13   Qty 2   Risk Rs 19
+    + Strong 3-month return
+    + This exact setup has historically preceded gains in this stock
+
+ 8. M&MFIN
+    Unclassified  |  score +0.92
+    Price Rs 389.60   Entry 384.53-394.67   Stop 360.61 (-7.4%)
+    Targets 447.59 / 491.08   Qty 0   Risk Rs 0
+    + This exact setup has historically preceded gains in this stock
+    + Strong 6-month return
+
+ 9. WELCORP
+    Unclassified  |  score +0.92
+    Price Rs 1,973.90   Entry 1,956.06-1,991.74   Stop 1,871.98 (-5.2%)
+    Targets 2,177.75 / 2,330.63   Qty 0   Risk Rs 0
+    + Strong 6-month return
+    + Strong 3-month return
+    ! RSI above 78 — overbought, a pullback is likely before continuation
+
+10. KABRAEXTRU
+    Unclassified  |  score +0.92
+    Price Rs 500.80   Entry 490.58-511.02   Stop 444.96 (-11.2%)
+    Targets 612.49 / 696.25   Qty 0   Risk Rs 0
+    + This exact setup has historically preceded gains in this stock
+    + Strong 3-month return
+
+--------------------------------------------------------------
+Scored 1090 of 1091 tradable stocks from 4088 screened.
+
+NOT INVESTMENT ADVICE. This is a quantitative screen — a shortlist to
+research, not a recommendation to buy. The model cannot see litigation,
+accounting issues or promoter behaviour. Past patterns do not predict
+future returns. Never risk money you cannot afford to lose.

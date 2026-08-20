@@ -1,0 +1,10 @@
+pandas>=2.0
+numpy>=1.24
+requests>=2.31
+PyYAML>=6.0
+# the interactive UI (streamlit run app.py)
+streamlit>=1.40
+plotly>=5.20
+# optional but recommended
+httpx[http2]>=0.27      # more reliable against NSE from servers/VPS
+yfinance>=0.2.40        # fallback price + fundamentals source

@@ -1,0 +1,19 @@
+# Downloaded NSE files — safe to delete, they re-download on demand
+cache/
+
+# The local market database. It can be rebuilt from NSE, but it is large and
+# rebuilding takes ~30 minutes, so most people will want to keep it locally
+# and simply not commit it.
+data/*.sqlite
+data/*.sqlite-wal
+data/*.sqlite-shm
+
+# Generated site. Uncomment the ignore if you don't publish it via Pages.
+site/archive/
+# site/
+
+logs/
+.venv/
+__pycache__/
+*.pyc
+.DS_Store
