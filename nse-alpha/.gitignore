@@ -17,3 +17,6 @@ logs/
 __pycache__/
 *.pyc
 .DS_Store
+
+# SMTP credentials — never commit this. See .env.example.
+.env
