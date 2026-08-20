@@ -211,13 +211,40 @@ BLOCK_HELP = {
 }
 
 
+REGIME_TONES = {
+    # Softened, color-coded card — still reads RISK-ON/CAUTION/RISK-OFF at a
+    # glance by hue, but without the saturated st.error()-style "something is
+    # broken" look. Background is a low-opacity tint of the accent, not a
+    # solid fill, so it stays legible in both themes. Text deliberately uses
+    # color:inherit rather than a light/dark switch keyed off is_dark() —
+    # st.get_option("theme.base") does not reliably reflect the browser's
+    # actual rendered theme, and Streamlit's own ambient text color is
+    # already correct for whichever theme is really active.
+    "RISK-ON": {"accent": "#0ca30c", "bg": "rgba(12,163,12,0.10)"},
+    "CAUTION": {"accent": "#c98a12", "bg": "rgba(201,138,18,0.12)"},
+    "RISK-OFF": {"accent": "#c9524f", "bg": "rgba(201,82,79,0.12)"},
+}
+
+
 def regime_banner(result):
     R = result.regime
-    tone = {"RISK-ON": "success", "CAUTION": "warning", "RISK-OFF": "error"}[R.verdict]
-    body = (f"**Market regime: {R.verdict}** — suggested exposure "
-            f"{R.exposure*100:.0f}% of your normal size\n\n"
-            + "\n".join(f"- {n}" for n in R.notes))
-    getattr(st, tone)(body)
+    tone = REGIME_TONES[R.verdict]
+    notes_html = "".join(f"<li style='margin:3px 0'>{n}</li>" for n in R.notes)
+    st.markdown(
+        f"""<div style="background:{tone['bg']};border-left:4px solid {tone['accent']};
+                    border-radius:8px;padding:14px 20px;margin-bottom:10px;
+                    color:inherit;">
+              <div style="font-weight:600;font-size:15px;color:inherit;
+                          margin-bottom:6px;">
+                Market regime: {R.verdict} — suggested exposure
+                {R.exposure*100:.0f}% of your normal size
+              </div>
+              <ul style="margin:0;padding-left:18px;color:inherit;
+                         font-size:14px;line-height:1.55;">
+                {notes_html}
+              </ul>
+            </div>""",
+        unsafe_allow_html=True)
 
 
 # ================================================================ page: picks
@@ -587,10 +614,48 @@ def page_backtest(cfg, db_path: str, dark: bool):
 
 def page_email(result, cfg, db_path: str):
     from nsealpha import mailer, scheduler
+    from nsealpha.pipeline import refresh_data
 
     project_dir = Path(__file__).resolve().parent
     mailer.load_env(project_dir / ".env")
     mcfg = mailer.mail_config(project_dir / ".env")
+
+    # ------------------------------------------------------------ data refresh
+    st.subheader("Data refresh")
+    st.caption("Pull today's bhavcopy, indices, corporate actions, F&O and "
+               "fundamentals from NSE. The app never fetches on its own — this "
+               "only ever runs when you click the button below.")
+
+    store = get_store(db_path)
+    r1, r2 = st.columns([2, 1])
+    r1.caption(f"Latest session on file: **{store.latest_price_date()}**")
+    skip_fund = r2.checkbox(
+        "Skip fundamentals (faster)", value=False,
+        help="Skips the slow per-symbol ratios/statements pass. Prices, "
+             "indicators and F&O still refresh.")
+
+    if st.button("Refresh today's data now", type="primary",
+                 use_container_width=True):
+        try:
+            with st.spinner("Fetching from NSE — a same-day refresh usually "
+                            "takes 2-5 minutes..."):
+                refresh_data(cfg, store, full_backfill=False,
+                             skip_fundamentals=skip_fund, verbose=False)
+            st.cache_data.clear()
+            st.success(f"Refreshed. Latest session: {store.latest_price_date()}.")
+            st.rerun()
+        except Exception as e:
+            st.error(f"Refresh failed: {e}")
+            if store.latest_price_date() is None:
+                st.info("No cached data to fall back on. If NSE is blocking "
+                        "this connection, try setting `data.server_mode: true` "
+                        "in config.yaml.")
+
+    st.caption("First time ever running this? Use the command line instead — "
+               "`python run_daily.py --refresh --backfill` pulls ~900 days of "
+               "history and takes 20-60 minutes, too long for a browser tab.")
+
+    st.divider()
 
     st.subheader("Daily email digest")
     st.caption("The top 10, what changed since yesterday, entry/stop/targets and "
@@ -691,14 +756,16 @@ def page_email(result, cfg, db_path: str):
     st.divider()
 
     # -------------------------------------------------------------- schedule
-    st.markdown("#### Send it automatically, every day")
+    st.markdown("#### Fetch it automatically, every day")
 
     st.info(
         "**This installs a job in your operating system's scheduler**, not in "
         "this app. Streamlit only runs Python while a browser tab is open, so a "
         "toggle that lived in here would stop working the moment you closed it. "
         f"On this machine that means **{sched.detail}**, and it keeps running "
-        "with the app closed, the browser quit and this tab long forgotten.",
+        "with the app closed, the browser quit and this tab long forgotten. "
+        "The job always refreshes data; emailing the digest is an optional "
+        "add-on below.",
         icon="🗓️")
 
     if not sched.available:
@@ -730,18 +797,34 @@ def page_email(result, cfg, db_path: str):
                "yesterday's close, so 19:00 is the sensible default.")
     send_time = dt_time(int(hour), int(minute))
 
+    # Whether the currently-installed job already emails is read back from the
+    # command it actually runs where that's available (crontab always exposes
+    # it; schtasks needs /V and a recent enough scheduler.py, see status()).
+    # Falls back to "on if email is configured" for a first-time setup.
+    already_emails = ("--email" in sched.command) if sched.command else mcfg.ok
+    also_email = st.checkbox(
+        "Also email the digest", value=already_emails and mcfg.ok,
+        disabled=not mcfg.ok,
+        help="Adds --email to the scheduled run. Needs email settings saved "
+             "above — leave unchecked to just refresh data every day with no "
+             "email sent." if mcfg.ok else
+             "Save your email settings above to enable this.")
+    extra_flags = "--refresh --email" if also_email else "--refresh"
+
     b1, b2 = st.columns(2)
     with b1:
-        label = "Update schedule" if sched.installed else "Turn on daily email"
-        if st.button(label, type="primary", use_container_width=True,
-                     disabled=not mcfg.ok):
+        label = "Update schedule" if sched.installed else (
+            "Turn on daily refresh + email" if also_email else "Turn on daily refresh")
+        if st.button(label, type="primary", use_container_width=True):
             try:
                 new = scheduler.install(project_dir, hour=send_time.hour,
                                         minute=send_time.minute,
-                                        weekdays_only=weekdays)
+                                        weekdays_only=weekdays,
+                                        extra_flags=extra_flags)
                 nxt = (new.next_run.strftime("%A %d %b at %H:%M")
                        if new.next_run else "the next scheduled slot")
-                st.success(f"Daily email is on. First send: {nxt}.")
+                what = "Daily refresh + email" if also_email else "Daily refresh"
+                st.success(f"{what} is on. First run: {nxt}.")
                 st.rerun()
             except Exception as e:
                 st.error(f"Could not install the schedule: {e}")
@@ -750,15 +833,11 @@ def page_email(result, cfg, db_path: str):
                      disabled=not sched.installed):
             try:
                 scheduler.remove(project_dir)
-                st.success("Daily email turned off. Your other scheduled jobs "
-                           "were left untouched.")
+                st.success("Daily schedule turned off. Your other scheduled "
+                           "jobs were left untouched.")
                 st.rerun()
             except Exception as e:
                 st.error(f"Could not remove the schedule: {e}")
-
-    if not mcfg.ok:
-        st.caption("Save your email settings first — scheduling a send with no "
-                   "credentials would just fail quietly every evening.")
 
     if sched.installed:
         st.success(
@@ -774,10 +853,10 @@ def page_email(result, cfg, db_path: str):
 
     st.caption(
         "**One caveat worth knowing:** the job runs on *this machine*. If it is "
-        "asleep or switched off at the scheduled time, cron does not catch up "
-        "afterwards — you simply get no email that evening. A laptop that's shut "
-        "by 7pm is a poor host for this; an always-on desktop or a small VPS is a "
-        "good one.")
+        "asleep or switched off at the scheduled time, the scheduler does not "
+        "catch up afterwards — you simply get no refresh (and no email, if that's "
+        "on) that day. A laptop that's shut by 7pm is a poor host for this; an "
+        "always-on desktop or a small VPS is a good one.")
 
 
 # ============================================================== page: data

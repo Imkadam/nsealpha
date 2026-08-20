@@ -189,6 +189,16 @@ the program calculates:
 - **A sector cap** — never more than 3 of the top 10 from the same industry,
   so "diversified list of 10 stocks" doesn't secretly mean "one bet on
   cement, ten times."
+- **A sector/industry label** — every pick is tagged with which broad industry
+  it belongs to (e.g. "Financial Services," "Healthcare," "Energy,"
+  "Information Technology," "FMCG," "Metals & Mining" — NSE's own
+  classification, fetched from the exchange's own stock-quote data, not
+  guessed by the model). This is what the sector cap above actually enforces,
+  what "sector-neutral scoring" in [Step 6](#step-6--turn-six-opinions-into-one-number-fairly)
+  compares each stock against, and it's shown on every pick card on the site,
+  every row of the "Explore" table and its sector filter/chart in the app, and
+  in the email digest — so you always know, at a glance, whether tonight's top
+  10 is a healthy mix of industries or an accidental bet on one of them.
 - **Red flags** — plain-English warnings shown even on the #1 pick: RSI too
   high (overbought), thin trading volume, promoter has pledged their shares
   as loan collateral (a real warning sign), high debt, a recent bad company
@@ -767,6 +777,19 @@ generating?"
 strong and fast recent gains have been relative to recent losses. Despite
 the similar name, this is *not* the same thing as "relative strength vs. the
 market" above — RSI compares a stock only to its own recent self.
+
+**Sector / Industry (classification)** — The broad line of business a company
+is tagged with — Financial Services, Healthcare/Pharma, Energy, Information
+Technology, FMCG (fast-moving consumer goods, e.g. packaged food and
+household products), Metals & Mining, and so on. This project doesn't guess
+this itself — it's pulled straight from NSE's own stock-quote data for each
+company, cached alongside its other fundamentals. Every pick shown anywhere
+in this project (the site, the app, the email) carries this label, and it's
+the basis for both the sector cap (see below) and sector-neutral scoring.
+
+**Sector cap** — A hard limit (3, by default) on how many of the top 10 picks
+can come from the same sector, so a strong week for one industry can't
+quietly turn "10 diversified picks" into "10 bets on the same theme."
 
 **Sector-neutral scoring** — Comparing each stock only against others in its
 *own industry sector*, rather than the whole market at once — so a

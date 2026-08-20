@@ -242,7 +242,9 @@ def _schtasks_remove() -> None:
 
 
 def _schtasks_query() -> Optional[str]:
-    r = subprocess.run(["schtasks", "/Query", "/TN", WINDOWS_TASK_NAME, "/FO", "LIST"],
+    # /V (verbose) is required to get "Task To Run" and "Days" back — the plain
+    # list format only has the name/status/next-run-time fields.
+    r = subprocess.run(["schtasks", "/Query", "/TN", WINDOWS_TASK_NAME, "/FO", "LIST", "/V"],
                        capture_output=True, text=True, timeout=30)
     return r.stdout if r.returncode == 0 else None
 
@@ -319,10 +321,16 @@ def status(project_dir: Path | str) -> ScheduleStatus:
         q = _schtasks_query()
         if q:
             st.installed = True
+            m = re.search(r"Schedule Type:\s*(\w+)", q)
+            if m:
+                st.weekdays_only = m.group(1).strip().lower() == "weekly"
             m = re.search(r"Start Time:\s*([0-9]{1,2}):([0-9]{2})", q)
             if m:
                 st.hour, st.minute = int(m.group(1)), int(m.group(2))
                 st.next_run = _next_run(st.hour, st.minute, st.weekdays_only)
+            m = re.search(r"Task To Run:\s*(.+)", q)
+            if m:
+                st.command = m.group(1).strip()
         return st
 
     block = extract_block(read_crontab())

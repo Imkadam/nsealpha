@@ -482,6 +482,16 @@ def fetch_fundamentals_yf(symbol: str) -> dict:
     Fallback / enrichment via yfinance. NSE does not publish ROE, D/E, margins or
     P/B through its public JSON, so if the user has yfinance installed we top up
     the quality and growth ratios from there. Entirely optional.
+
+    Also the fallback source for sector/industry classification: NSE only
+    exposes that through the cookie-gated `/api/quote-equity` JSON endpoint
+    (see fetch_fundamentals_nse), which is the first thing to get 403'd when
+    NSE's edge decides an IP is a bot — a data-centre or CI/sandbox address is
+    exactly the profile it blocks. When that happens every stock's sector
+    silently comes back as "Unclassified" even though prices and bhavcopy
+    data (which don't need that endpoint) keep working fine. yfinance's
+    `sector`/`industry` fields cover the same ground and don't go through
+    that endpoint at all.
     """
     try:
         import yfinance as yf
@@ -497,6 +507,8 @@ def fetch_fundamentals_yf(symbol: str) -> dict:
     g = lambda *k: next((i[x] for x in k if i.get(x) is not None), np.nan)
     return {
         "source_extra": "yfinance",
+        "sector": i.get("sector") or np.nan,
+        "industry": i.get("industry") or np.nan,
         "pb": g("priceToBook"),
         "peg": g("pegRatio", "trailingPegRatio"),
         "roe": (g("returnOnEquity") or np.nan) * 100 if i.get("returnOnEquity") else np.nan,
@@ -535,8 +547,16 @@ def refresh_fundamentals(client: NSEClient, store, symbols: Iterable[str],
             log.debug("nse fundamentals %s: %s", sym, e)
         if use_yf:
             try:
-                payload.update({k: v for k, v in fetch_fundamentals_yf(sym).items()
-                                if v is not None})
+                # A true fallback: fill gaps NSE left (sector/industry chief
+                # among them when NSE's JSON API is blocked), but never let
+                # yfinance's numbers override a value NSE already supplied —
+                # NSE is the primary source, yfinance is enrichment.
+                for k, v in fetch_fundamentals_yf(sym).items():
+                    if v is None or (isinstance(v, float) and np.isnan(v)):
+                        continue
+                    if payload.get(k) is None or (
+                            isinstance(payload.get(k), float) and np.isnan(payload[k])):
+                        payload[k] = v
             except Exception as e:
                 log.debug("yf fundamentals %s: %s", sym, e)
         if payload:
